@@ -61,6 +61,14 @@ public class TaskServiceImpl implements TaskService {
         return TaskResponseDTO.depuis(repository.saveAndFlush(task));
     }
 
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        // On passe par chercher() pour renvoyer un 404 explicite plutot que
+        // l'exception technique de deleteById sur un id absent
+        repository.delete(chercher(id));
+    }
+
     private Task chercher(Long id) {
         return repository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
     }
