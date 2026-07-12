@@ -1,79 +1,52 @@
-# MediShop — Backend
+# todoapp-backend
 
-API REST d'une pharmacie en ligne — projet DevOps.
-Le front React est dans le depot [devops_f](https://github.com/Bayebaradiop/devops_f).
+API REST de la Todo App MediShop : PostgreSQL + Spring Boot, entierement dockerises.
+Le front React vit dans le depot [devops_f](https://github.com/Bayebaradiop/devops_f).
 
-- Spring Boot 3.5.16 / Java 21 / Maven
-- Base de donnees : H2 en memoire par defaut, PostgreSQL via le profil `postgres`
-- L'API ecoute sur **http://localhost:8090**
+## Stack
 
-## Lancer en local (H2, aucune installation requise)
+- Java 17, Spring Boot 3.5, Maven
+- Spring Data JPA (Hibernate), Spring Validation, Spring Actuator
+- PostgreSQL 16 (Alpine)
+- Docker / Docker Compose
 
-```bash
-./mvnw spring-boot:run
-```
-
-## Lancer avec Docker
-
-Le `docker-compose.yml` orchestre les trois services (db + backend + front) et vit
-**a la racine `medishop/`**, a cote de ce depot et de celui du front :
-
-```
-medishop/
-├── docker-compose.yml
-├── backend/   <- ce depot (devops_b)
-└── front/     <- depot devops_f
-```
+## Demarrage
 
 ```bash
-cd ..            # racine medishop/
+cp .env.example .env      # puis adapter DB_PASSWORD
 docker compose up --build
 ```
 
-- Front : http://localhost:5173
 - API : http://localhost:8090
-- PostgreSQL : `localhost:5439` (base `medishop`, user `medishop`, mdp `medishop`)
+- Health : http://localhost:8090/actuator/health
+- PostgreSQL : `localhost:5439`
 
-Pour ne construire que l'image du backend : `docker build -t medishop-backend .`
+Aucune valeur sensible n'est ecrite en dur : tout passe par des variables
+d'environnement (voir [.env.example](.env.example)). Le `.env` reel n'est jamais commite.
 
-## Tests
+## Base de donnees
 
-```bash
-./mvnw verify
-```
-
-## API
-
-| Methode  | Chemin                       | Description                          |
-|----------|------------------------------|--------------------------------------|
-| `GET`    | `/api/medicaments`           | Liste tous les medicaments           |
-| `GET`    | `/api/medicaments?nom=para`  | Recherche par nom (insensible casse) |
-| `GET`    | `/api/medicaments/{id}`      | Detail d'un medicament               |
-| `POST`   | `/api/medicaments`           | Cree un medicament                   |
-| `PUT`    | `/api/medicaments/{id}`      | Modifie un medicament                |
-| `DELETE` | `/api/medicaments/{id}`      | Supprime un medicament               |
-
-Supervision : `GET /actuator/health`
-
-### Exemple
+Le schema initial est dans [db/init/01-schema.sql](db/init/01-schema.sql). L'image
+PostgreSQL le joue automatiquement **au premier demarrage seulement** (quand le volume
+`db-data` est vide). Pour repartir de zero :
 
 ```bash
-curl -X POST http://localhost:8090/api/medicaments \
-  -H 'Content-Type: application/json' \
-  -d '{"nom":"Doliprane 1000mg","description":"Antalgique","prix":2200,"stock":50,"surOrdonnance":false}'
+docker compose down -v && docker compose up --build
 ```
 
-Un medicament : `nom` (obligatoire), `description`, `prix` (>= 0, obligatoire),
-`stock` (>= 0, obligatoire), `surOrdonnance` (booleen).
+## Workflow Git
 
-## Structure
+`main` est protegee et ne recoit rien directement.
 
 ```
-src/main/java/com/medishop/backend/
-├── medicament/   entite, repository, service, controller
-└── web/          gestion des erreurs (404, validation)
+main (protegee)
+  └── deploy (branche d'integration)
+        ├── feature/db-dockerize
+        ├── feature/backend-task-create
+        ├── feature/backend-task-read
+        ├── feature/backend-task-update
+        └── feature/backend-task-delete
 ```
 
-## CI
-
-[.github/workflows/ci.yml](.github/workflows/ci.yml) : build + tests a chaque push et PR sur `main`.
+Chaque feature part de `deploy` et y retourne **via Pull Request**. `main` n'est
+alimentee que par une PR depuis `deploy`, une fois celle-ci validee.
