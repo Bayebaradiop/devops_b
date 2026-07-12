@@ -13,14 +13,28 @@ Le front React est dans le depot [devops_f](https://github.com/Bayebaradiop/devo
 ./mvnw spring-boot:run
 ```
 
-## Lancer avec Docker (backend + PostgreSQL)
+## Lancer avec Docker
+
+Le `docker-compose.yml` orchestre les trois services (db + backend + front) et vit
+**a la racine `medishop/`**, a cote de ce depot et de celui du front :
+
+```
+medishop/
+├── docker-compose.yml
+├── backend/   <- ce depot (devops_b)
+└── front/     <- depot devops_f
+```
 
 ```bash
+cd ..            # racine medishop/
 docker compose up --build
 ```
 
+- Front : http://localhost:5173
 - API : http://localhost:8090
 - PostgreSQL : `localhost:5439` (base `medishop`, user `medishop`, mdp `medishop`)
+
+Pour ne construire que l'image du backend : `docker build -t medishop-backend .`
 
 ## Tests
 
