@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: medishop-db
+    environment:
+      POSTGRES_DB: medishop
+      POSTGRES_USER: medishop
+      POSTGRES_PASSWORD: medishop
+    ports:
+      # 5439 sur l'hote pour ne pas entrer en conflit avec un Postgres local
+      - "5439:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medishop -d medishop"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: medishop-backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SERVER_PORT: 8090
+      # Dans le reseau compose on parle au conteneur db sur son port interne 5432
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: medishop
+      DB_USER: medishop
+      DB_PASSWORD: medishop
+    ports:
+      - "8090:8090"
+
+volumes:
+  db-data:
