@@ -45,6 +45,22 @@ public class TaskServiceImpl implements TaskService {
         return TaskResponseDTO.depuis(chercher(id));
     }
 
+    @Override
+    @Transactional
+    public TaskResponseDTO update(Long id, TaskRequestDTO request) {
+        Task task = chercher(id);
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        // Statut absent du corps : on conserve celui deja en base
+        if (request.getStatus() != null) {
+            task.setStatus(request.getStatus());
+        }
+        // saveAndFlush et non save : @PreUpdate ne se declenche qu'au flush. Avec un simple
+        // save(), le flush aurait lieu au commit, apres la construction du DTO, et la reponse
+        // renverrait un updatedAt perime alors que la base contient la bonne valeur.
+        return TaskResponseDTO.depuis(repository.saveAndFlush(task));
+    }
+
     private Task chercher(Long id) {
         return repository.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
     }
