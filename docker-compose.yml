@@ -1,0 +1,28 @@
+# Orchestration du backend : PostgreSQL + API Spring Boot.
+# Les valeurs viennent du fichier .env (copier .env.example en .env).
+# Aucun secret n'est ecrit en dur ici : c'est ce qui rend le pipeline Jenkins possible.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: todoapp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      # 5439 sur l'hote pour ne pas entrer en conflit avec un PostgreSQL local
+      - "${DB_PORT_HOST:-5439}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # Le schema initial n'est joue qu'a la creation du volume
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:
