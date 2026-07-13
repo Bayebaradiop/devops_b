@@ -25,7 +25,9 @@ DB_HOST="${DB_HOST:-10.0.2.20}"
 DB_PORT="${DB_PORT:-5432}"
 DB_NAME="${DB_NAME:-todoapp}"
 DB_USER="${DB_USER:-todoapp}"
-CORS="${CORS_ALLOWED_ORIGINS:-http://20.199.183.9}"
+# Origines autorisees a appeler l'API. Le site est servi en HTTPS sur le domaine
+# sslip.io ; on garde l'IP en HTTP pour pouvoir tester sans passer par le domaine.
+CORS="${CORS_ALLOWED_ORIGINS:-https://20.199.183.9.sslip.io,http://20.199.183.9.sslip.io,http://20.199.183.9}"
 
 echo "==> Deploiement de $IMAGE:$TAG"
 
