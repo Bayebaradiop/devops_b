@@ -74,14 +74,25 @@ pipeline {
                     sshUserPrivateKey(credentialsId: 'azure-ssh', keyFileVariable: 'SSH_KEY'),
                     string(credentialsId: 'db-password', variable: 'DB_PASSWORD')
                 ]) {
-                    // La VM Back n'a pas d'IP publique : on rebondit par le Front (-J).
+                    // La VM Back n'a pas d'IP publique : on rebondit par le Front.
+                    //
+                    // ATTENTION : on n'utilise PAS le raccourci "-J". Avec lui, les options
+                    // -o ne s'appliquent qu'a la machine CIBLE, pas a la machine de REBOND.
+                    // SSH exige alors de verifier la cle d'hote du Front, echoue avec
+                    // "Host key verification failed", et le deploiement casse.
+                    // (Invisible depuis un poste de dev, dont le known_hosts connait deja
+                    // le Front. Le conteneur Jenkins, lui, part de zero.)
+                    //
+                    // On ecrit donc un ProxyCommand explicite, qui porte les MEMES options
+                    // sur les deux sauts.
                     sh '''
-                        OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=20"
-                        JUMP="-J $VM_USER@$FRONT_IP"
+                        OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=20"
+                        PROXY_CMD="ssh -i $SSH_KEY $OPTS -W %h:%p $VM_USER@$FRONT_IP"
 
-                        scp $OPTS $JUMP deploy/deploy.sh $VM_USER@$BACK_IP:/tmp/deploy.sh
+                        scp -i "$SSH_KEY" $OPTS -o "ProxyCommand=$PROXY_CMD" \
+                            deploy/deploy.sh $VM_USER@$BACK_IP:/tmp/deploy.sh
 
-                        ssh $OPTS $JUMP $VM_USER@$BACK_IP \
+                        ssh -i "$SSH_KEY" $OPTS -o "ProxyCommand=$PROXY_CMD" $VM_USER@$BACK_IP \
                             "chmod +x /tmp/deploy.sh && DB_PASSWORD='$DB_PASSWORD' /tmp/deploy.sh $IMAGE $TAG"
                     '''
                 }
