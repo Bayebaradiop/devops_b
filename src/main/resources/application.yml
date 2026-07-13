@@ -20,6 +20,15 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+  # L'application tourne DERRIERE le reverse proxy Nginx. Sans cette ligne, elle
+  # se croit appelee en "http://10.0.2.10:8080" (ce que voit Tomcat), alors que
+  # le visiteur, lui, est en "https://<domaine>". Spring classe alors les requetes
+  # du site comme du cross-origin et les refuse (403 "Invalid CORS request").
+  #
+  # Avec "framework", Spring reconstruit l'URL reelle a partir des en-tetes
+  # X-Forwarded-* envoyes par Nginx.
+  forward-headers-strategy: framework
+
 management:
   endpoints:
     web:
